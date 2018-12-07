@@ -17,6 +17,7 @@ data:
   release_prefix: airship
   chart_groups:
     - openstack-ingress-controller-airskiff
+    - openstack-ceph-config
     - openstack-mariadb-airskiff
     - openstack-memcached
     - openstack-keystone-airskiff

@@ -69,23 +69,645 @@ data:
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
-  name: nfs-provisioner
+  name: ingress-ceph
 data:
-  chart_name: nfs-provisioner
-  release: nfs-provisioner
-  namespace: nfs
+  chart_name: ingress
+  release: ingress-ceph
+  namespace: ceph
   wait:
     timeout: 1800
     labels:
-      release_group: airship-nfs-provisioner
+      release_group: airship-ingress-ceph
+  values: {}
+  source:
+    type: local
+    location: /airship-components/openstack-helm-infra
+    subpath: ingress
+  dependencies:
+    - osh-helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ceph-mon
+data:
+  chart_name: ceph-mon
+  release: ceph-mon
+  namespace: ceph
+  wait:
+    timeout: 1800
+    labels:
+      release_group: airship-ceph-mon
   values:
-    storageclass:
-      name: general
+    endpoints:
+      identity:
+        namespace: ucp
+      object_store:
+        namespace: ceph
+      ceph_mon:
+        namespace: ceph
+    network:
+      public: 172.17.0.1/16
+      cluster: 172.17.0.1/16
+    deployment:
+      storage_secrets: true
+      ceph: true
+      rbd_provisioner: true
+      cephfs_provisioner: true
+      client_secrets: false
+      rgw_keystone_user_and_endpoints: false
+    bootstrap:
+      enabled: true
+    conf:
+      rgw_ks:
+        enabled: true
+      ceph:
+        global:
+          fsid: 472e159f-4917-4fc3-a571-7a5983bc9226
+          osd_pool_default_size: 1
+        osd:
+          osd_crush_chooseleaf_type: 0
+      pool:
+        crush:
+          tunables: null
+        target:
+          osd: 1
+          pg_per_osd: 100
+        default:
+          crush_rule: same_host
+        spec:
+          # RBD pool
+          - name: rbd
+            application: rbd
+            replication: 1
+            percent_total_data: 40
+          # CephFS pools
+          - name: cephfs_metadata
+            application: cephfs
+            replication: 1
+            percent_total_data: 5
+          - name: cephfs_data
+            application: cephfs
+            replication: 1
+            percent_total_data: 10
+          # RadosGW pools
+          - name: .rgw.root
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.control
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.data.root
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.gc
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.log
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.intent-log
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.meta
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.usage
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.keys
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.email
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.swift
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.uid
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.buckets.extra
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.buckets.index
+            application: rgw
+            replication: 1
+            percent_total_data: 3
+          - name: default.rgw.buckets.data
+            application: rgw
+            replication: 1
+            percent_total_data: 34.8
+      storage:
+        osd:
+          - data:
+              type: directory
+              location: /var/lib/openstack-helm/ceph/osd/osd-one
+            journal:
+              type: directory
+              location: /var/lib/openstack-helm/ceph/osd/journal-one
+    pod:
+      replicas:
+        mds: 1
+        mgr: 1
+        rgw: 1
+  source:
+    type: local
+    location: /airship-components/openstack-helm-infra
+    subpath: ceph-mon
+  dependencies:
+    - osh-helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ceph-osd
+data:
+  chart_name: ceph-osd
+  release: ceph-osd
+  namespace: ceph
+  wait:
+    timeout: 1800
+    labels:
+      release_group: airship-ceph-osd
+  values:
+    endpoints:
+      identity:
+        namespace: ucp
+      object_store:
+        namespace: ceph
+      ceph_mon:
+        namespace: ceph
+    network:
+      public: 172.17.0.1/16
+      cluster: 172.17.0.1/16
+    deployment:
+      storage_secrets: true
+      ceph: true
+      rbd_provisioner: true
+      cephfs_provisioner: true
+      client_secrets: false
+      rgw_keystone_user_and_endpoints: false
+    bootstrap:
+      enabled: true
+    conf:
+      rgw_ks:
+        enabled: true
+      ceph:
+        global:
+          fsid: 472e159f-4917-4fc3-a571-7a5983bc9226
+          osd_pool_default_size: 1
+        osd:
+          osd_crush_chooseleaf_type: 0
+      pool:
+        crush:
+          tunables: null
+        target:
+          osd: 1
+          pg_per_osd: 100
+        default:
+          crush_rule: same_host
+        spec:
+          # RBD pool
+          - name: rbd
+            application: rbd
+            replication: 1
+            percent_total_data: 40
+          # CephFS pools
+          - name: cephfs_metadata
+            application: cephfs
+            replication: 1
+            percent_total_data: 5
+          - name: cephfs_data
+            application: cephfs
+            replication: 1
+            percent_total_data: 10
+          # RadosGW pools
+          - name: .rgw.root
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.control
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.data.root
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.gc
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.log
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.intent-log
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.meta
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.usage
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.keys
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.email
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.swift
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.uid
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.buckets.extra
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.buckets.index
+            application: rgw
+            replication: 1
+            percent_total_data: 3
+          - name: default.rgw.buckets.data
+            application: rgw
+            replication: 1
+            percent_total_data: 34.8
+      storage:
+        osd:
+          - data:
+              type: directory
+              location: /var/lib/openstack-helm/ceph/osd/osd-one
+            journal:
+              type: directory
+              location: /var/lib/openstack-helm/ceph/osd/journal-one
+    pod:
+      replicas:
+        mds: 1
+        mgr: 1
+        rgw: 1
+  source:
+    type: local
+    location: /airship-components/openstack-helm-infra
+    subpath: ceph-osd
+  dependencies:
+    - osh-helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ceph-client
+data:
+  chart_name: ceph-client
+  release: ceph-client
+  namespace: ceph
+  wait:
+    timeout: 1800
+    labels:
+      release_group: airship-ceph-client
+  test:
+    enabled: false
+  values:
+    endpoints:
+      identity:
+        namespace: ucp
+      object_store:
+        namespace: ceph
+      ceph_mon:
+        namespace: ceph
+    network:
+      public: 172.17.0.1/16
+      cluster: 172.17.0.1/16
+    deployment:
+      storage_secrets: true
+      ceph: true
+      rbd_provisioner: true
+      cephfs_provisioner: true
+      client_secrets: false
+      rgw_keystone_user_and_endpoints: false
+    bootstrap:
+      enabled: true
+    conf:
+      rgw_ks:
+        enabled: true
+      ceph:
+        global:
+          fsid: 472e159f-4917-4fc3-a571-7a5983bc9226
+          osd_pool_default_size: 1
+        osd:
+          osd_crush_chooseleaf_type: 0
+      pool:
+        crush:
+          tunables: null
+        target:
+          osd: 1
+          pg_per_osd: 100
+        default:
+          crush_rule: same_host
+        spec:
+          # RBD pool
+          - name: rbd
+            application: rbd
+            replication: 1
+            percent_total_data: 40
+          # CephFS pools
+          - name: cephfs_metadata
+            application: cephfs
+            replication: 1
+            percent_total_data: 5
+          - name: cephfs_data
+            application: cephfs
+            replication: 1
+            percent_total_data: 10
+          # RadosGW pools
+          - name: .rgw.root
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.control
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.data.root
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.gc
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.log
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.intent-log
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.meta
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.usage
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.keys
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.email
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.swift
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.uid
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.buckets.extra
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.buckets.index
+            application: rgw
+            replication: 1
+            percent_total_data: 3
+          - name: default.rgw.buckets.data
+            application: rgw
+            replication: 1
+            percent_total_data: 34.8
+      storage:
+        osd:
+          - data:
+              type: directory
+              location: /var/lib/openstack-helm/ceph/osd/osd-one
+            journal:
+              type: directory
+              location: /var/lib/openstack-helm/ceph/osd/journal-one
+    pod:
+      replicas:
+        mds: 1
+        mgr: 1
+        rgw: 1
+  source:
+    type: local
+    location: /airship-components/openstack-helm-infra
+    subpath: ceph-client
+  dependencies:
+    - osh-helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ceph-provisioners
+data:
+  chart_name: ceph-provisioners
+  release: ceph-provisioners
+  namespace: ceph
+  wait:
+    timeout: 1800
+    labels:
+      release_group: airship-ceph-provisioners
+  values:
+    endpoints:
+      identity:
+        namespace: ucp
+      object_store:
+        namespace: ceph
+      ceph_mon:
+        namespace: ceph
+    network:
+      public: 172.17.0.1/16
+      cluster: 172.17.0.1/16
+    deployment:
+      storage_secrets: true
+      ceph: true
+      rbd_provisioner: true
+      cephfs_provisioner: true
+      client_secrets: false
+      rgw_keystone_user_and_endpoints: false
+    bootstrap:
+      enabled: true
+    conf:
+      rgw_ks:
+        enabled: true
+      ceph:
+        global:
+          fsid: 472e159f-4917-4fc3-a571-7a5983bc9226
+          osd_pool_default_size: 1
+        osd:
+          osd_crush_chooseleaf_type: 0
+      pool:
+        crush:
+          tunables: null
+        target:
+          osd: 1
+          pg_per_osd: 100
+        default:
+          crush_rule: same_host
+        spec:
+          # RBD pool
+          - name: rbd
+            application: rbd
+            replication: 1
+            percent_total_data: 40
+          # CephFS pools
+          - name: cephfs_metadata
+            application: cephfs
+            replication: 1
+            percent_total_data: 5
+          - name: cephfs_data
+            application: cephfs
+            replication: 1
+            percent_total_data: 10
+          # RadosGW pools
+          - name: .rgw.root
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.control
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.data.root
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.gc
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.log
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.intent-log
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.meta
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.usage
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.keys
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.email
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.swift
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.users.uid
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.buckets.extra
+            application: rgw
+            replication: 1
+            percent_total_data: 0.1
+          - name: default.rgw.buckets.index
+            application: rgw
+            replication: 1
+            percent_total_data: 3
+          - name: default.rgw.buckets.data
+            application: rgw
+            replication: 1
+            percent_total_data: 34.8
+      storage:
+        osd:
+          - data:
+              type: directory
+              location: /var/lib/openstack-helm/ceph/osd/osd-one
+            journal:
+              type: directory
+              location: /var/lib/openstack-helm/ceph/osd/journal-one
+    pod:
+      replicas:
+        mds: 1
+        mgr: 1
+        rgw: 1
+  source:
+    type: local
+    location: /airship-components/openstack-helm-infra
+    subpath: ceph-provisioners
+  dependencies:
+    - osh-helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: ceph-ucp-config
+data:
+  chart_name: ceph-ucp-config
+  release: ceph-ucp-config
+  namespace: ucp
+  wait:
+    timeout: 1800
+    labels:
+      release_group: airship-ceph-ucp-config
+  values:
+    endpoints:
+      identity:
+        namespace: ucp
+      object_store:
+        namespace: ceph
+      ceph_mon:
+        namespace: ceph
+    network:
+      public: 172.17.0.1/16
+      cluster: 172.17.0.1/16
+    deployment:
+      storage_secrets: false
+      ceph: false
+      rbd_provisioner: false
+      cephfs_provisioner: false
+      client_secrets: true
+      rgw_keystone_user_and_endpoints: false
+    bootstrap:
+      enabled: false
+    conf:
+      rgw_ks:
+        enabled: true
   source:
     type: git
     location: https://git.openstack.org/openstack/openstack-helm-infra.git
     reference: 8662018a4dceb82a5d699d9e118caff9e5edb156
-    subpath: nfs-provisioner
+    subpath: ceph-provisioners
   dependencies:
     - osh-helm-toolkit
 ---
@@ -332,7 +954,12 @@ data:
   sequenced: True
   chart_group:
     - ingress-ucp
-    - nfs-provisioner
+    - ingress-ceph
+    - ceph-mon
+    - ceph-osd
+    - ceph-client
+    - ceph-provisioners
+    - ceph-ucp-config
     - mariadb
     - rabbitmq
     - memcached
