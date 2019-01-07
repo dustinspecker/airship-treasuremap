@@ -10,6 +10,8 @@ metadata:
       name: nova-global
       component: nova
     actions:
+      - method: merge
+        path: .test
       - method: replace
         path: .values.labels.agent
       - method: delete
@@ -20,6 +22,8 @@ metadata:
         path: .values.pod
   storagePolicy: cleartext
 data:
+  test:
+    enabled: false
   values:
     labels:
       agent:

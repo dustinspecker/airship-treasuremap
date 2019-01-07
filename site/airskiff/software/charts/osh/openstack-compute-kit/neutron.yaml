@@ -11,6 +11,8 @@ metadata:
       component: neutron
     actions:
       - method: merge
+        path: .test
+      - method: merge
         path: .values.pod
       - method: replace
         path: .values.labels.agent.l3
@@ -22,6 +24,8 @@ metadata:
         path: .values.conf.plugins
   storagePolicy: cleartext
 data:
+  test:
+    enabled: false
   values:
     pod:
       replicas:
