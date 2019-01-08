@@ -714,6 +714,73 @@ data:
 schema: armada/Chart/v1
 metadata:
   schema: metadata/Document/v1
+  name: ucp-radosgw
+data:
+  chart_name: ucp-radosgw
+  release: ucp-radosgw
+  namespace: ucp
+  wait:
+    timeout: 900
+    labels:
+      release_group: airship-ucp-radosgw
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+    pre:
+      delete:
+        - type: job
+          labels:
+            release_group: airship-ucp-radosgw
+  test:
+    enabled: false
+  values:
+    endpoints:
+      identity:
+        namespace: ucp
+      object_store:
+        namespace: ucp
+      ceph_mon:
+        namespace: ceph
+    network:
+      public: 172.17.0.1/16
+      cluster: 172.17.0.1/16
+    deployment:
+      storage_secrets: false
+      ceph: true
+      rbd_provisioner: false
+      cephfs_provisioner: false
+      client_secrets: false
+      rgw_keystone_user_and_endpoints: true
+    bootstrap:
+      enabled: false
+    conf:
+      rgw_ks:
+        enabled: true
+    pod:
+      replicas:
+        rgw: 1
+    manifests:
+      helm_tests: false
+    labels:
+      job:
+        node_selector_key: openstack-control-plane
+        node_selector_value: enabled
+      rgw:
+        node_selector_key: ceph-rgw
+        node_selector_value: enabled
+    ceph_client:
+      configmap: ceph-etc
+  source:
+    type: local
+    location: /airship-components/openstack-helm-infra
+    subpath: ceph-rgw
+  dependencies:
+    - osh-helm-toolkit
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
   name: mariadb
 data:
   chart_name: mariadb
@@ -966,6 +1033,7 @@ data:
     - keystone-ucp
     - postgresql
     - barbican
+    - ucp-radosgw
 ---
 schema: armada/ChartGroup/v1
 metadata:
